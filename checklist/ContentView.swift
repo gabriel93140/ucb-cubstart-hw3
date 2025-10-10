@@ -8,21 +8,20 @@
 import SwiftUI
 
 struct ContentView: View {
-    @State private var description: String = ""
-    @State private var inProgress: [String] = []
-    @State private var complete: [String] = []
+    @StateObject private var viewModel = ViewModel()
+    
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            HeaderView(description: $description, inProgress: $inProgress)
+            HeaderView(viewModel: viewModel)
                 .padding(.horizontal, 20)
-            ChecklistView(inProgress: $inProgress, complete: $complete)
+            ChecklistView(viewModel: viewModel)
         }
     }
 }
 
-struct HeaderView: View{
-    @Binding var description: String
-    @Binding var inProgress: [String]
+struct HeaderView: View {
+    @ObservedObject var viewModel: ViewModel
+    
     var body: some View {
         VStack(alignment: .leading) {
             HStack(spacing: 16) {
@@ -41,7 +40,7 @@ struct HeaderView: View{
                     .font(.system(size: 28, weight: .bold))
             }
             HStack(spacing: 12) {
-                TextField("Enter description", text: $description)
+                TextField("Enter description", text: $viewModel.description)
                     .textFieldStyle(.plain)
                     .padding(.horizontal, 10)
                     .padding(.vertical, 6)
@@ -56,10 +55,7 @@ struct HeaderView: View{
                     .frame(maxWidth: .infinity)
                 
                 Button {
-                    if !description.isEmpty {
-                        inProgress.append(description)
-                        description = ""
-                    }
+                    viewModel.addTask()
                 } label: {
                     Text("Add")
                         .padding(.horizontal, 15)
@@ -74,14 +70,13 @@ struct HeaderView: View{
 }
 
 struct ChecklistView: View {
-    @Binding var inProgress: [String]
-    @Binding var complete: [String]
+    @ObservedObject var viewModel: ViewModel
 
     var body: some View {
         List {
             // In Progress
             Section(header: Text("TO DO").textCase(nil)) {
-                ForEach(inProgress, id: \.self) { task in
+                ForEach(viewModel.inProgressTasks, id: \.self) { task in
                     HStack {
                         Text(task)
                             .foregroundColor(.white)
@@ -90,10 +85,7 @@ struct ChecklistView: View {
                     }
                     .contentShape(Rectangle())
                     .onTapGesture {
-                        if let idx = inProgress.firstIndex(of: task) {
-                            let moved = inProgress.remove(at: idx)
-                            complete.append(moved)
-                        }
+                        viewModel.completeTask(task)
                     }
                     .listRowBackground(Color.red)
                 }
@@ -101,7 +93,7 @@ struct ChecklistView: View {
 
             // Complete
             Section(header: Text("DONE").textCase(nil)) {
-                ForEach(complete, id: \.self) { task in
+                ForEach(viewModel.completedTasks, id: \.self) { task in
                     HStack {
                         Image(systemName: "checkmark")
                             .foregroundColor(.white)
@@ -112,10 +104,7 @@ struct ChecklistView: View {
                     }
                     .contentShape(Rectangle())
                     .onTapGesture {
-                        if let idx = complete.firstIndex(of: task) {
-                            let moved = complete.remove(at: idx)
-                            inProgress.insert(moved, at: 0)
-                        }
+                        viewModel.uncompleteTask(task)
                     }
                     .listRowBackground(Color.green)
                 }
@@ -129,8 +118,6 @@ struct ChecklistView: View {
     }
 }
 
-struct ContentView_Previews: PreviewProvider {
-    static var previews: some View {
-        ContentView()
-    }
+#Preview {
+     ContentView()
 }
